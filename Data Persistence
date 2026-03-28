@@ -1,0 +1,9 @@
+// Save settings using DataStore
+val Context.dataStore by preferencesDataStore(name = "settings")
+
+suspend fun saveSettings(lat: Double, lon: Double) {
+    context.dataStore.edit { settings ->
+        settings[PreferencesKeys.LAT] = lat
+        settings[PreferencesKeys.LON] = lon
+    }
+}
