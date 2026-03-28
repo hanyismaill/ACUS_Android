@@ -1,0 +1,391 @@
+package com.digitalsatellites.acus.ui.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.digitalsatellites.acus.data.ModemInfo
+import com.digitalsatellites.acus.utils.MathUtils
+
+@Composable
+fun SatellitePointingCard(
+    siteLat: Double?,
+    siteLon: Double?,
+    satLon: String,
+    heading: String,
+    onSatLonChange: (String) -> Unit,
+    onHeadingChange: (String) -> Unit,
+    txPower: Double?,
+    onTxPowerChange: (Double) -> Unit,
+    isTxMuted: Boolean,
+    onTxMuteToggle: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1520)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "SATELLITE POINTING & ANTENNA ALIGNMENT",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp,
+                color = Color(0xFF3DE882),
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = satLon,
+                    onValueChange = onSatLonChange,
+                    label = { Text("Satellite longitude (°E)") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFF3DE882),
+                        unfocusedBorderColor = Color(0xFF18263A)
+                    )
+                )
+                
+                OutlinedTextField(
+                    value = heading,
+                    onValueChange = onHeadingChange,
+                    label = { Text("Heading") },
+                    placeholder = { Text("e.g. 215") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = Color(0xFF3DE882),
+                        unfocusedBorderColor = Color(0xFF18263A)
+                    )
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    TxPowerControl(txPower, onTxPowerChange)
+                }
+                
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    TxMuteControl(isTxMuted, onTxMuteToggle)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            val pointing = siteLat?.let { lat ->
+                siteLon?.let { lon ->
+                    MathUtils.calcPointing(lat, lon, satLon.toDoubleOrNull() ?: 0.0)
+                }
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text("Azimuth", fontSize = 10.sp, color = Color(0xFF60808E))
+                        Text(
+                            text = pointing?.let { "%.2f°".format(it.az) } ?: "—",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF3DE882)
+                        )
+                    }
+                }
+                
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text("Elevation", fontSize = 10.sp, color = Color(0xFF60808E))
+                        Text(
+                            text = pointing?.let { "%.2f°".format(it.el) } ?: "—",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF00C8A0)
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val headingDouble = heading.toDoubleOrNull()
+                val azimuth = pointing?.az
+                val offset = if (azimuth != null && headingDouble != null) {
+                    var o = (azimuth - headingDouble + 360) % 360
+                    if (o > 180) o -= 360
+                    o
+                } else null
+                
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(10.dp)
+                    ) {
+                        Text("Direction to rotate", fontSize = 10.sp, color = Color(0xFF60808E))
+                        if (offset != null) {
+                            Text(
+                                text = if (offset > 0) "► RIGHT  %.1f°".format(offset)
+                                else "◄ LEFT  %.1f°".format(abs(offset)),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (offset > 0) Color(0xFFF0C040) else Color(0xFF4499FF)
+                            )
+                        } else {
+                            Text("Enter heading above", fontSize = 12.sp, color = Color(0xFF2C404E))
+                        }
+                    }
+                }
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Compass(
+                        azimuth = azimuth ?: 0.0,
+                        heading = headingDouble
+                    )
+                    Row {
+                        Text("━", color = Color(0xFF3DE882))
+                        Text(" Azimuth", fontSize = 8.sp, color = Color(0xFF2C404E))
+                        Text("  ╌", color = Color(0xFF4499FF))
+                        Text(" Heading", fontSize = 8.sp, color = Color(0xFF2C404E))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TxMuteControl(isMuted: Boolean, onToggle: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Tx mute", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF60808E))
+        
+        Button(
+            onClick = onToggle,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isMuted) Color(0xFFE0484828) else Color(0xFF3DE88222)
+            ),
+            shape = RoundedCornerShape(7.dp),
+            modifier = Modifier.padding(top = 4.dp)
+        ) {
+            Text(
+                if (isMuted) "🔇 Muted (ON)" else "📡 Active (OFF)",
+                color = if (isMuted) Color(0xFFE04848) else Color(0xFF3DE882),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
+
+@Composable
+fun PointingControlCard(isActive: Boolean, onStart: () -> Unit, onStop: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1520)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "ANTENNA POINTING CONTROL",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp,
+                color = Color(0xFF3DE882),
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onStart,
+                    enabled = !isActive,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isActive) Color(0xFF111E2A) else Color(0xFF00C8A0)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("▶ Start antenna pointing", color = if (isActive) Color(0xFF2C404E) else Color.White)
+                }
+                
+                Button(
+                    onClick = onStop,
+                    enabled = isActive,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (!isActive) Color(0xFF111E2A) else Color(0xFFE04848)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("■ Stop antenna pointing", color = if (!isActive) Color(0xFF2C404E) else Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SignalMonitorCard(
+    isActive: Boolean,
+    snr: Double,
+    rxFrequency: Double?,
+    txPower: Double?,
+    isTxMuted: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1520)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "LIVE SIGNAL MONITOR",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp,
+                color = Color(0xFFF0C040),
+                modifier = Modifier.padding(bottom = 10.dp)
+            )
+            
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                SignalBars(snr, isActive)
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text("Rx C/N live", fontSize = 10.sp, color = Color(0xFF60808E))
+                        Text(
+                            text = if (isActive) "%.2f dB".format(snr) else "—",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = when {
+                                !isActive -> Color(0xFF2C404E)
+                                snr >= 9 -> Color(0xFF3DE882)
+                                snr >= 4 -> Color(0xFFF0C040)
+                                else -> Color(0xFFE04848)
+                            }
+                        )
+                        Text("Target >9 dB for lock", fontSize = 8.sp, color = Color(0xFF2C404E))
+                    }
+                }
+                
+                Card(
+                    modifier = Modifier.weight(1.6f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Lock status", fontSize = 10.sp, color = Color(0xFF60808E))
+                            Text(
+                                text = when {
+                                    !isActive -> "INACTIVE"
+                                    snr >= 9 -> "LOCKED ✓"
+                                    else -> "ACQUIRING"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = when {
+                                    !isActive -> Color(0xFF2C404E)
+                                    snr >= 9 -> Color(0xFF3DE882)
+                                    else -> Color(0xFFF0C040)
+                                }
+                            )
+                        }
+                        LockBar(snr, isActive)
+                    }
+                }
+                
+                Card(
+                    modifier = Modifier.weight(1f),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        Text("Tx power", fontSize = 10.sp, color = Color(0xFF60808E))
+                        Text(
+                            text = txPower?.let { "%.1f dBm".format(it) } ?: "—",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFFF0C040)
+                        )
+                        Text(
+                            text = if (isTxMuted) "TX MUTED" else "Tx active",
+                            fontSize = 8.sp,
+                            color = if (isTxMuted) Color(0xFFE04848) else Color(0xFF2C404E),
+                            fontWeight = if (isTxMuted) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
