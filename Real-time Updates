@@ -1,0 +1,9 @@
+// Use Flow for real-time SNR updates
+class ModemDataRepository {
+    private val _snr = MutableStateFlow(0.0)
+    val snr: StateFlow<Double> = _snr.asStateFlow()
+    
+    fun updateSnr(newSnr: Double) {
+        _snr.value = newSnr
+    }
+}
