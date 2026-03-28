@@ -1,0 +1,47 @@
+package com.digitalsatellites.acus.services
+
+import com.digitalsatellites.acus.data.ModemData
+
+object ModemService {
+    private val ds = ModemData()
+    
+    fun executeCommand(cmd: String): String {
+        return when (val c = cmd.trim().lowercase()) {
+            "sn" -> "08741"
+            "model" -> "X7"
+            "sw version" -> "iDS 3.4.7.2"
+            "latlong" -> "Lat: 24.7136  Long: 46.6753"
+            "rx freq" -> "1547.250 MHz"
+            "rx snr" -> "${ds.snr.toFixed(2)} dB"
+            "tx power" -> "${ds.tx.toFixed(1)} dBm"
+            else -> {
+                when {
+                    c.startsWith("tx power ") -> {
+                        val v = c.substring(9).toDoubleOrNull()
+                        if (v != null) ds.tx = v
+                        "OK"
+                    }
+                    c == "tx enable off" -> {
+                        ds.txMuted = true
+                        "OK"
+                    }
+                    c == "tx enable on" -> {
+                        ds.txMuted = false
+                        "OK"
+                    }
+                    c == "rx pointing on" || c == "rx pointing off" -> "OK"
+                    else -> "—"
+                }
+            }
+        }
+    }
+    
+    fun getCurrentTxPower(): Double = ds.tx
+    fun isTxMuted(): Boolean = ds.txMuted
+    fun getCurrentSnr(): Double = ds.snr
+    fun updateSnr(newSnr: Double) { ds.snr = newSnr }
+}
+
+private fun Double.toFixed(digits: Int): String {
+    return "%.${digits}f".format(this)
+}
