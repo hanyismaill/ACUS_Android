@@ -1,0 +1,526 @@
+package com.digitalsatellites.acus.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.*
+
+@Composable
+fun ModemInfoCard(modemInfo: ModemInfo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1520)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "MODEM INFORMATION",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 2.sp,
+                    color = Color(0xFF00C8A0)
+                )
+                IDirectBadge()
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InfoChip("Serial number", modemInfo.serialNumber, Color(0xFF00C8A0))
+                InfoChip("Model", modemInfo.model, Color(0xFF4499FF))
+                InfoChip("Software version", modemInfo.softwareVersion)
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InfoChip("Site latitude", modemInfo.siteLat?.let { "$it°" } ?: "—")
+                InfoChip("Site longitude", modemInfo.siteLon?.let { "$it°" } ?: "—")
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoChip(label: String, value: String, valueColor: Color = Color(0xFFBDD0E0)) {
+    Card(
+        modifier = Modifier.weight(1f),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF090F1A)),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp, 11.dp)) {
+            Text(
+                text = label,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF60808E)
+            )
+            Text(
+                text = value,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+fun TxPowerControl(
+    value: Double?,
+    onValueChange: (Double) -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Tx power",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF60808E)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { value?.let { onValueChange(it - 1) } },
+                enabled = value != null
+            ) {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Decrease",
+                    tint = Color(0xFFE04848)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Text(
+                    text = value?.let { "%.1f".format(it) } ?: "—",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = when {
+                        value == null -> Color(0xFF2C404E)
+                        value > -20 -> Color(0xFFF0C040)
+                        else -> Color(0xFF00C8A0)
+                    }
+                )
+                Text(
+                    text = "dBm",
+                    fontSize = 9.sp,
+                    color = Color(0xFF60808E)
+                )
+            }
+            
+            IconButton(
+                onClick = { value?.let { onValueChange(it + 1) } },
+                enabled = value != null
+            ) {
+                Icon(
+                    Icons.Default.ArrowDropUp,
+                    contentDescription = "Increase",
+                    tint = Color(0xFF3DE882)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun Compass(azimuth: Double, heading: Double?) {
+    val size = 150.dp
+    val center = Offset(size.value / 2, size.value / 2)
+    val radius = size.value / 2 - 8.dp.value
+    
+    Canvas(modifier = Modifier.size(size)) {
+        // Background
+        drawCircle(
+            color = Color(0xFF0E2035),
+            radius = radius,
+            center = center
+        )
+        
+        // Tick marks
+        for (i in 0 until 72) {
+            val angle = i * 5.0
+            val isMajor = angle % 90 == 0.0
+            val isMedium = angle % 45 == 0.0
+            val tickLength = when {
+                isMajor -> 14.dp.value
+                isMedium -> 8.dp.value
+                else -> 4.dp.value
+            }
+            val start = getPoint(center, radius - tickLength, angle)
+            val end = getPoint(center, radius, angle)
+            drawLine(
+                color = if (isMajor) Color(0xFF60808E) else Color(0xFF18263A),
+                start = start,
+                end = end,
+                strokeWidth = if (isMajor) 1.4f else 0.7f
+            )
+        }
+        
+        // Cardinal directions
+        listOf("N", "E", "S", "W").forEachIndexed { index, label ->
+            val pos = getPoint(center, radius - 20.dp.value, index * 90.0)
+            drawContext.canvas.nativeCanvas.apply {
+                val paint = android.graphics.Paint().apply {
+                    color = if (label == "N") Color(0xFFE04848).toArgb() else Color(0xFFBDD0E0).toArgb()
+                    textSize = if (label == "N") 11.dp.value else 9.dp.value
+                    isFakeBoldText = true
+                }
+                drawText(label, pos.x - 6, pos.y + 4, paint)
+            }
+        }
+        
+        // Heading line (if available)
+        heading?.let { hdg ->
+            val end = getPoint(center, radius - 16.dp.value, hdg)
+            drawLine(
+                color = Color(0xFF4499FF),
+                start = center,
+                end = end,
+                strokeWidth = 2.2f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f)
+            )
+        }
+        
+        // Azimuth line
+        val azEnd = getPoint(center, radius - 9.dp.value, azimuth)
+        drawLine(
+            color = Color(0xFF3DE882),
+            start = center,
+            end = azEnd,
+            strokeWidth = 2.8f
+        )
+        drawCircle(
+            color = Color(0xFF3DE882),
+            radius = 4.5f,
+            center = azEnd
+        )
+        
+        // Center
+        drawCircle(
+            color = Color(0xFFE04848),
+            radius = 5.5f,
+            center = center
+        )
+    }
+}
+
+private fun getPoint(center: Offset, radius: Float, angleDeg: Double): Offset {
+    val angleRad = Math.toRadians(angleDeg - 90)
+    return Offset(
+        center.x + (radius * cos(angleRad)).toFloat(),
+        center.y + (radius * sin(angleRad)).toFloat()
+    )
+}
+
+@Composable
+fun SignalBars(snr: Double, isActive: Boolean) {
+    val bars = 24
+    val filled = ((snr.coerceIn(0.0, 20.0) / 20) * bars).toInt()
+    
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Text(
+                text = "Signal strength",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF60808E)
+            )
+            Text(
+                text = if (isActive) "%.2f".format(snr) else "—",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = when {
+                    !isActive -> Color(0xFF2C404E)
+                    snr < 4 -> Color(0xFFE04848)
+                    snr < 9 -> Color(0xFFF0C040)
+                    else -> Color(0xFF3DE882)
+                }
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(5.dp))
+        
+        Row(
+            modifier = Modifier.height(28.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            repeat(bars) { i ->
+                val height = 28 + (i / bars.toFloat()) * 72
+                val color = when (i / bars.toFloat()) {
+                    in 0f..0.25f -> Color(0xFFE04848)
+                    in 0.25f..0.5f -> Color(0xFFF0C040)
+                    else -> Color(0xFF3DE882)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(if (i < filled && isActive) height / 100 else 0.3f)
+                        .background(
+                            if (i < filled && isActive) color else Color(0xFF101C28),
+                            shape = RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
+                        )
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(6.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("0", fontSize = 8.sp, color = Color(0xFF2C404E))
+            Text("▲4", fontSize = 8.sp, color = Color(0xFFF0C040))
+            Text("▲9 dB lock", fontSize = 8.sp, color = Color(0xFF3DE882))
+            Text("20", fontSize = 8.sp, color = Color(0xFF2C404E))
+        }
+        
+        Spacer(modifier = Modifier.height(6.dp))
+        
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        when {
+                            !isActive -> Color(0xFF2C404E)
+                            snr >= 9 -> Color(0xFF3DE882)
+                            else -> Color(0xFFF0C040)
+                        }
+                    )
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = when {
+                    !isActive -> "INACTIVE"
+                    snr >= 9 -> "CARRIER LOCKED"
+                    else -> "SEARCHING…"
+                },
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = when {
+                    !isActive -> Color(0xFF2C404E)
+                    snr >= 9 -> Color(0xFF3DE882)
+                    else -> Color(0xFFF0C040)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun LockBar(snr: Double, isActive: Boolean) {
+    val percentage = if (isActive) (snr.coerceIn(0.0, 20.0) / 20) * 100 else 0.0
+    val color = when {
+        snr >= 12 -> Color(0xFF3DE882)
+        snr >= 4 -> Color(0xFFF0C040)
+        else -> Color(0xFFE04848)
+    }
+    
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(Color(0xFF050B12))
+                .border(1.dp, Color(0xFF18263A), RoundedCornerShape(4.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(percentage.toFloat() / 100)
+                    .fillMaxHeight()
+                    .background(color)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                listOf("SNR<2", "2–12", "≥12✓").forEach { label ->
+                    Text(
+                        text = label,
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0x88FFFFFF)
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LegendItem(Color(0xFFE04848), "<2 No signal")
+            LegendItem(Color(0xFFF0C040), "2–12 Acquiring")
+            LegendItem(Color(0xFF3DE882), "≥12 Locked")
+        }
+    }
+}
+
+@Composable
+fun LegendItem(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(RoundedCornerShape(1.dp))
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(3.dp))
+        Text(
+            text = label,
+            fontSize = 8.sp,
+            color = Color(0xFF2C404E)
+        )
+    }
+}
+
+@Composable
+fun TopBar(isDemo: Boolean, onDisconnect: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF0D1520),
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp, 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DigitalSatellitesLogo(height = 30.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+                VerticalDivider()
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = "ACUS",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 4.sp,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Antenna control unit software",
+                        fontSize = 9.sp,
+                        color = Color(0xFF60808E)
+                    )
+                }
+            }
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (isDemo) {
+                    Surface(
+                        color = Color(0xFF00C8A022),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = "DEMO",
+                            fontSize = 8.sp,
+                            color = Color(0xFF00C8A0),
+                            modifier = Modifier.padding(2.dp, 4.dp)
+                        )
+                    }
+                }
+                TextButton(onClick = onDisconnect) {
+                    Text("Disconnect", color = Color(0xFF60808E))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun VerticalDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(26.dp)
+            .background(Color(0xFF18263A))
+    )
+}
+
+@Composable
+fun LoadingIndicator() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "READING MODEM DATA…",
+                fontSize = 12.sp,
+                color = Color(0xFF00C8A0)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                repeat(3) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color(0xFF00C8A0).copy(alpha = 0.3f))
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun Footer() {
+    Text(
+        text = "Digital Satellites · Your Trusted Telecom Operator · ACUS v1.0",
+        fontSize = 9.sp,
+        color = Color(0xFF2C404E),
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+    )
+}
