@@ -1,0 +1,26 @@
+// Add actual modem connection using Socket
+class TelnetClient {
+    private var socket: Socket? = null
+    private var reader: BufferedReader? = null
+    private var writer: PrintWriter? = null
+    
+    fun connect(ip: String, port: Int = 23): Boolean {
+        return try {
+            socket = Socket(ip, port)
+            reader = BufferedReader(InputStreamReader(socket!!.getInputStream()))
+            writer = PrintWriter(socket!!.getOutputStream(), true)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+    
+    fun sendCommand(cmd: String): String? {
+        return try {
+            writer?.println(cmd)
+            reader?.readLine()
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
