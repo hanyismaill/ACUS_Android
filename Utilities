@@ -1,0 +1,51 @@
+package com.digitalsatellites.acus.utils
+
+import kotlin.math.*
+
+object MathUtils {
+    fun toRad(degrees: Double): Double = degrees * PI / 180.0
+    fun toDeg(radians: Double): Double = radians * 180.0 / PI
+    
+    fun calcPointing(lat: Double, lon: Double, sat: Double): PointingResult {
+        val la = toRad(lat)
+        val dl = toRad(sat - lon)
+        
+        val az = (toDeg(atan2(tan(dl), -tan(la))) % 360 + 360) % 360
+        
+        val num = cos(toRad(lat)) * cos(dl) - 0.1512
+        val den = sqrt(1 - cos(toRad(lat)) * cos(dl).pow(2))
+        val el = toDeg(atan(num / den))
+        
+        return PointingResult(az, el)
+    }
+    
+    fun parseLatLong(response: String): LocationInfo? {
+        val pattern = Regex("Lat[itude]*[:\\s]+([-\\d.]+).*?Lon[gitude]*[:\\s]+([-\\d.]+)", 
+            RegexOption.IGNORE_CASE)
+        return pattern.find(response)?.let {
+            LocationInfo(
+                lat = it.groupValues[1].toDouble(),
+                lon = it.groupValues[2].toDouble()
+            )
+        }
+    }
+    
+    fun parseFrequency(response: String): Double? {
+        val pattern = Regex("([\\d.]+)")
+        return pattern.find(response)?.groupValues[1]?.toDouble()
+    }
+    
+    fun parseSnr(response: String): Double? {
+        val pattern = Regex("([\\d.]+)")
+        return pattern.find(response)?.groupValues[1]?.toDouble()
+    }
+    
+    fun parseTxPower(response: String): Double? {
+        val pattern = Regex("([-\\d.]+)")
+        return pattern.find(response)?.groupValues[1]?.toDouble()
+    }
+    
+    fun parseSwVersion(response: String): String {
+        return response.replace(Regex("^iD[SsXx]\\s*"), "").trim()
+    }
+}
