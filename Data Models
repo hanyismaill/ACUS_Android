@@ -1,0 +1,29 @@
+package com.digitalsatellites.acus.data
+
+data class PointingResult(
+    val az: Double,
+    val el: Double
+)
+
+data class ModemData(
+    var snr: Double = 11.4,
+    var tx: Double = -22.0,
+    var txMuted: Boolean = false
+)
+
+data class LocationInfo(
+    val lat: Double,
+    val lon: Double
+)
+
+data class ModemInfo(
+    val serialNumber: String = "",
+    val model: String = "",
+    val softwareVersion: String = "",
+    val siteLat: Double? = null,
+    val siteLon: Double? = null,
+    val rxFrequency: Double? = null,
+    val txPower: Double? = null,
+    val snr: Double = 0.0,
+    val txMuted: Boolean = false
+)
