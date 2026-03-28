@@ -1,0 +1,151 @@
+package com.digitalsatellites.acus.ui.screens
+
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import com.digitalsatellites.acus.services.ModemService
+import com.digitalsatellites.acus.utils.MathUtils
+import com.digitalsatellites.acus.ui.components.*
+
+@Composable
+fun MainScreen(onDisconnect: () -> Unit) {
+    var isLoading by remember { mutableStateOf(true) }
+    var modemInfo by remember { mutableStateOf(ModemInfo()) }
+    var satLon by remember { mutableStateOf("26.0") }
+    var heading by remember { mutableStateOf("") }
+    var isPointingActive by remember { mutableStateOf(false) }
+    var currentSnr by remember { mutableStateOf(0.0) }
+    
+    LaunchedEffect(Unit) {
+        // Load modem data
+        delay(800)
+        val sn = ModemService.executeCommand("sn")
+        val model = ModemService.executeCommand("model")
+        val swVer = ModemService.executeCommand("sw version")
+        val latLong = ModemService.executeCommand("latlong")
+        val rxFreq = ModemService.executeCommand("rx freq")
+        val txPower = ModemService.executeCommand("tx power")
+        val snr = ModemService.executeCommand("rx snr")
+        
+        val location = MathUtils.parseLatLong(latLong)
+        
+        modemInfo = modemInfo.copy(
+            serialNumber = sn,
+            model = model,
+            softwareVersion = MathUtils.parseSwVersion(swVer),
+            siteLat = location?.lat,
+            siteLon = location?.lon,
+            rxFrequency = MathUtils.parseFrequency(rxFreq),
+            txPower = MathUtils.parseTxPower(txPower),
+            snr = MathUtils.parseSnr(snr) ?: 0.0
+        )
+        currentSnr = modemInfo.snr
+        isLoading = false
+    }
+    
+    // Simulate SNR updates when pointing is active
+    LaunchedEffect(isPointingActive) {
+        while (isPointingActive && isActive) {
+            delay(120)
+            val newSnr = (currentSnr + (Math.random() - 0.47) * 0.35)
+                .coerceIn(0.0, 20.0)
+            currentSnr = newSnr
+            ModemService.updateSnr(newSnr)
+        }
+    }
+    
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF07090E)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top Bar
+            TopBar(
+                isDemo = true,
+                onDisconnect = onDisconnect
+            )
+            
+            if (isLoading) {
+                LoadingIndicator()
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Modem Information
+                    item {
+                        ModemInfoCard(modemInfo = modemInfo)
+                    }
+                    
+                    // Satellite Pointing
+                    item {
+                        SatellitePointingCard(
+                            siteLat = modemInfo.siteLat,
+                            siteLon = modemInfo.siteLon,
+                            satLon = satLon,
+                            heading = heading,
+                            onSatLonChange = { satLon = it },
+                            onHeadingChange = { heading = it },
+                            txPower = ModemService.getCurrentTxPower(),
+                            onTxPowerChange = { newPower ->
+                                ModemService.executeCommand("tx power $newPower")
+                            },
+                            isTxMuted = ModemService.isTxMuted(),
+                            onTxMuteToggle = {
+                                val cmd = if (ModemService.isTxMuted()) "tx enable on" else "tx enable off"
+                                ModemService.executeCommand(cmd)
+                            }
+                        )
+                    }
+                    
+                    // Antenna Pointing Control
+                    item {
+                        PointingControlCard(
+                            isActive = isPointingActive,
+                            onStart = {
+                                ModemService.executeCommand("rx pointing on")
+                                isPointingActive = true
+                            },
+                            onStop = {
+                                ModemService.executeCommand("rx pointing off")
+                                isPointingActive = false
+                            }
+                        )
+                    }
+                    
+                    // Live Signal Monitor
+                    item {
+                        SignalMonitorCard(
+                            isActive = isPointingActive,
+                            snr = currentSnr,
+                            rxFrequency = modemInfo.rxFrequency,
+                            txPower = ModemService.getCurrentTxPower(),
+                            isTxMuted = ModemService.isTxMuted()
+                        )
+                    }
+                    
+                    // Footer
+                    item {
+                        Footer()
+                    }
+                }
+            }
+        }
+    }
+}
