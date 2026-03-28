@@ -1,0 +1,160 @@
+package com.digitalsatellites.acus.ui.components
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+
+@Composable
+fun DigitalSatellitesLogo(height: androidx.compose.ui.unit.Dp) {
+    Box(
+        modifier = Modifier.size(width = height * 2.8f, height = height),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val h = size.height
+            val w = size.width
+            
+            // Orbit ring
+            drawArc(
+                color = Color(0xFFE04848),
+                startAngle = -28f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = Offset(h * 0.04f, h * 0.12f),
+                size = androidx.compose.ui.geometry.Size(h * 0.84f, h * 0.36f),
+                style = Stroke(width = 1.8f)
+            )
+            
+            // Satellite dish body
+            drawRect(
+                color = Color(0xFFE04848),
+                topLeft = Offset(h * 0.06f, h * 0.34f),
+                size = androidx.compose.ui.geometry.Size(h * 0.18f, h * 0.22f)
+            )
+            
+            // Draw text using native canvas
+            drawContext.canvas.nativeCanvas.apply {
+                val paint = android.graphics.Paint().apply {
+                    color = Color(0xFFE04848).toArgb()
+                    textSize = h * 0.82f
+                    isFakeBoldText = true
+                }
+                drawText("D", h * 0.98f, h * 0.78f, paint)
+                
+                paint.color = Color.White.toArgb()
+                drawText("S", h * 1.52f, h * 0.78f, paint)
+                
+                paint.textSize = h * 0.28f
+                paint.color = Color.White.toArgb()
+                drawText("DIGITAL", h * 2.06f, h * 0.46f, paint)
+                
+                paint.color = Color(0xFFE04848).toArgb()
+                drawText("SATELLITES", h * 2.06f, h * 0.8f, paint)
+            }
+        }
+    }
+}
+
+@Composable
+fun IDirectBadge() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(4.dp, 4.dp, 8.dp, 4.dp)
+    ) {
+        Text("powered by", fontSize = 8.sp, color = Color(0xFF2C404E))
+        Spacer(modifier = Modifier.width(4.dp))
+        Canvas(modifier = Modifier.size(88.dp, 16.dp)) {
+            val h = size.height
+            
+            // Arrow/star
+            val points = listOf(
+                Offset(0f, h / 2),
+                Offset(h * 0.44f, 0f),
+                Offset(h * 0.44f, h * 0.38f),
+                Offset(h * 0.82f, h * 0.18f),
+                Offset(h * 0.56f, h / 2),
+                Offset(h * 0.82f, h * 0.82f),
+                Offset(h * 0.44f, h * 0.62f),
+                Offset(h * 0.44f, h)
+            )
+            drawPath(
+                path = Path().apply {
+                    moveTo(points[0].x, points[0].y)
+                    points.drop(1).forEach { lineTo(it.x, it.y) }
+                    close()
+                },
+                color = Color.White
+            )
+            
+            drawContext.canvas.nativeCanvas.apply {
+                val paint = android.graphics.Paint().apply {
+                    color = Color.White.toArgb()
+                    textSize = h * 0.72f
+                    isFakeBoldText = true
+                    typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT_BOLD, android.graphics.Typeface.ITALIC)
+                }
+                drawText("iDirect", h * 1.0f, h * 0.76f, paint)
+            }
+        }
+    }
+}
+
+@Composable
+fun SatIcon(size: androidx.compose.ui.unit.Dp, color: Color) {
+    Canvas(modifier = Modifier.size(size)) {
+        val w = size.value
+        val h = size.value
+        
+        // Satellite body
+        drawRect(
+            color = color,
+            topLeft = Offset(w * 0.39f, h * 0.3125f),
+            size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.375f)
+        )
+        
+        // Antenna arms
+        drawLine(
+            color = color,
+            start = Offset(w * 0.39f, h * 0.5f),
+            end = Offset(w * 0.078f, h * 0.5f),
+            strokeWidth = 2.5f
+        )
+        
+        drawRect(
+            color = color.copy(alpha = 0.55f),
+            topLeft = Offset(w * 0.0156f, h * 0.3906f),
+            size = androidx.compose.ui.geometry.Size(w * 0.25f, h * 0.21875f)
+        )
+        
+        // Satellite dish
+        val path = Path().apply {
+            moveTo(w * 0.40625f, h * 0.3125f)
+            quadraticTo(w * 0.5f, h * 0.15625f, w * 0.59375f, h * 0.3125f)
+        }
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = 2.2f)
+        )
+        
+        drawLine(
+            color = color,
+            start = Offset(w * 0.5f, h * 0.1875f),
+            end = Offset(w * 0.5f, h * 0.3125f),
+            strokeWidth = 2.2f
+        )
+        
+        drawCircle(
+            color = color,
+            radius = w * 0.046875f,
+            center = Offset(w * 0.5f, h * 0.1875f)
+        )
+    }
+}
