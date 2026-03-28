@@ -1,0 +1,6 @@
+// Add comprehensive error handling
+sealed class ModemResult<out T> {
+    data class Success<T>(val data: T) : ModemResult<T>()
+    data class Error(val exception: Exception) : ModemResult<Nothing>()
+    object Loading : ModemResult<Nothing>()
+}
