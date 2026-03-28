@@ -1,0 +1,28 @@
+package com.digitalsatellites.acus
+
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalConfiguration
+import com.digitalsatellites.acus.ui.screens.LoginScreen
+import com.digitalsatellites.acus.ui.screens.MainScreen
+
+@Composable
+fun ACUSApp() {
+    var isLoggedIn by remember { mutableStateOf(false) }
+    var isDemo by remember { mutableStateOf(false) }
+    
+    if (!isLoggedIn) {
+        LoginScreen(
+            onDemo = {
+                isDemo = true
+                isLoggedIn = true
+            }
+        )
+    } else {
+        MainScreen(
+            onDisconnect = {
+                isLoggedIn = false
+                isDemo = false
+            }
+        )
+    }
+}
